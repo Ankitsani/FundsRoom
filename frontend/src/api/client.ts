@@ -39,24 +39,41 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     throw error;
   }
 
-  return result.data as T;
+  return result as T;
 }
 
 export const api = {
   auth: {
-    login: (body: any) => request<any>('/auth/login', { method: 'POST', body }),
-    me: () => request<any>('/auth/me', { method: 'GET' }),
+    login: async (body: any) => {
+      const res = await request<any>('/auth/login', { method: 'POST', body });
+      return res.data;
+    },
+    me: async () => {
+      const res = await request<any>('/auth/me', { method: 'GET' });
+      return res.data;
+    },
   },
   customers: {
     list: (params: { page?: number; limit?: number; search?: string } = {}) => {
       const query = new URLSearchParams(params as any).toString();
       return request<any>(`/customers?${query}`, { method: 'GET' });
     },
-    get: (id: string) => request<any>(`/customers/${id}`, { method: 'GET' }),
-    create: (body: any) => request<any>('/customers', { method: 'POST', body }),
-    update: (id: string, body: any) => request<any>(`/customers/${id}`, { method: 'PUT', body }),
-    addNote: (id: string, body: { noteText: string }) =>
-      request<any>(`/customers/${id}/notes`, { method: 'POST', body }),
+    get: async (id: string) => {
+      const res = await request<any>(`/customers/${id}`, { method: 'GET' });
+      return res.data;
+    },
+    create: async (body: any) => {
+      const res = await request<any>('/customers', { method: 'POST', body });
+      return res.data;
+    },
+    update: async (id: string, body: any) => {
+      const res = await request<any>(`/customers/${id}`, { method: 'PUT', body });
+      return res.data;
+    },
+    addNote: async (id: string, body: { noteText: string }) => {
+      const res = await request<any>(`/customers/${id}/notes`, { method: 'POST', body });
+      return res.data;
+    },
   },
   products: {
     list: (params: { page?: number; limit?: number; search?: string; category?: string; lowStock?: boolean } = {}) => {
@@ -68,9 +85,18 @@ export const api = {
       if (params.lowStock !== undefined) query.append('lowStock', String(params.lowStock));
       return request<any>(`/products?${query.toString()}`, { method: 'GET' });
     },
-    get: (id: string) => request<any>(`/products/${id}`, { method: 'GET' }),
-    create: (body: any) => request<any>('/products', { method: 'POST', body }),
-    update: (id: string, body: any) => request<any>(`/products/${id}`, { method: 'PUT', body }),
+    get: async (id: string) => {
+      const res = await request<any>(`/products/${id}`, { method: 'GET' });
+      return res.data;
+    },
+    create: async (body: any) => {
+      const res = await request<any>('/products', { method: 'POST', body });
+      return res.data;
+    },
+    update: async (id: string, body: any) => {
+      const res = await request<any>(`/products/${id}`, { method: 'PUT', body });
+      return res.data;
+    },
   },
   challans: {
     list: (params: { page?: number; limit?: number; status?: string; customerId?: string; startDate?: string; endDate?: string } = {}) => {
@@ -83,9 +109,17 @@ export const api = {
       if (params.endDate) query.append('endDate', params.endDate);
       return request<any>(`/challans?${query.toString()}`, { method: 'GET' });
     },
-    get: (id: string) => request<any>(`/challans/${id}`, { method: 'GET' }),
-    create: (body: any) => request<any>('/challans', { method: 'POST', body }),
-    updateStatus: (id: string, status: string) =>
-      request<any>(`/challans/${id}/status`, { method: 'PUT', body: { status } }),
+    get: async (id: string) => {
+      const res = await request<any>(`/challans/${id}`, { method: 'GET' });
+      return res.data;
+    },
+    create: async (body: any) => {
+      const res = await request<any>('/challans', { method: 'POST', body });
+      return res.data;
+    },
+    updateStatus: async (id: string, status: string) => {
+      const res = await request<any>(`/challans/${id}/status`, { method: 'PUT', body: { status } });
+      return res.data;
+    },
   },
 };
