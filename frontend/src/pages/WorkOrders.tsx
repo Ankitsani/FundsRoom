@@ -4,16 +4,17 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { useNavigate } from 'react-router-dom';
 import {
-  ClipboardList,
+  FileText,
   Plus,
-  AlertCircle,
-  Clock,
+  Play,
   CheckCircle,
-  ArrowRight,
+  Clock,
   User,
-  MapPin,
-  X,
-  ArrowLeftRight
+  AlertCircle,
+  Warehouse,
+  ArrowRight,
+  TrendingDown,
+  X
 } from 'lucide-react';
 
 export const WorkOrders: React.FC = () => {
@@ -21,13 +22,13 @@ export const WorkOrders: React.FC = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
-  const [workOrders, setWorkOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal states
+  // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form states
@@ -40,18 +41,18 @@ export const WorkOrders: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [woData, locData, invData, usrData] = await Promise.all([
+      const [woData, locRes, invRes, userRes] = await Promise.all([
         api.erp.workOrders.list(),
         api.erp.locations.list(),
         api.erp.inventory.list(),
         api.erp.users.list(),
       ]);
-      setWorkOrders(woData || []);
-      setLocations(locData || []);
-      setInventory(invData || []);
-      setUsers(usrData || []);
+      setOrders(woData || []);
+      setLocations(locRes || []);
+      setInventory(invRes || []);
+      setUsers(userRes || []);
     } catch (err: any) {
-      showToast(err.message || 'Failed to load work orders data', 'error');
+      showToast(err.message || 'Failed to fetch work orders', 'error');
     } finally {
       setLoading(false);
     }
@@ -61,7 +62,7 @@ export const WorkOrders: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleCreateWorkOrder = async (e: React.FormEvent) => {
+  const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!workOrderId || !locationId || !inventoryId || requiredQuantity === '' || !assignedUserId) {
       showToast('All fields are required', 'error');
@@ -76,9 +77,9 @@ export const WorkOrders: React.FC = () => {
         requiredQuantity: Number(requiredQuantity),
         assignedUserId,
       });
-      showToast('Work order created successfully', 'success');
+      showToast('Work Order registered successfully', 'success');
       setIsModalOpen(false);
-      // Reset form
+      // Reset
       setWorkOrderId('');
       setLocationId('');
       setInventoryId('');
@@ -86,43 +87,45 @@ export const WorkOrders: React.FC = () => {
       setAssignedUserId('');
       fetchData();
     } catch (err: any) {
-      showToast(err.message || 'Failed to create work order', 'error');
+      showToast(err.message || 'Failed to create Work Order', 'error');
     }
   };
 
-  const handleUpdateStatus = async (id: string, newStatus: string) => {
+  const handleUpdateStatus = async (id: string, newStatus: 'IN_PROGRESS' | 'COMPLETED') => {
     try {
       await api.erp.workOrders.updateStatus(id, newStatus);
-      showToast(`Work order status updated to ${newStatus}`, 'success');
+      showToast(`Work Order marked as ${newStatus.replace('_', ' ')}`, 'success');
       fetchData();
     } catch (err: any) {
-      showToast(err.message || 'Failed to update work order status', 'error');
+      showToast(err.message || 'Status transition failed', 'error');
     }
   };
 
-  // Filter inventory by selected location for dropdown list
-  const filteredInventory = inventory.filter((inv) => inv.locationId === locationId);
+  // Metrics
+  const activeJobsCount = orders.filter(o => o.status === 'ASSIGNED' || o.status === 'IN_PROGRESS').length;
+  const shortageJobsCount = orders.filter(o => o.shortageQuantity > 0).length;
+  const completedJobsCount = orders.filter(o => o.status === 'COMPLETED').length;
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ASSIGNED':
         return (
-          <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full text-xs font-semibold">
-            <Clock className="w-3.5 h-3.5" />
+          <span className="inline-flex items-center gap-1.5 bg-gray-50 text-gray-700 border border-gray-200 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
             Assigned
           </span>
         );
       case 'IN_PROGRESS':
         return (
-          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-full text-xs font-semibold">
-            <Clock className="w-3.5 h-3.5 animate-pulse" />
+          <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 border border-blue-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-ping" />
             In Progress
           </span>
         );
       case 'COMPLETED':
         return (
-          <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full text-xs font-semibold">
-            <CheckCircle className="w-3.5 h-3.5" />
+          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
             Completed
           </span>
         );
@@ -131,126 +134,157 @@ export const WorkOrders: React.FC = () => {
     }
   };
 
+  const isAdmin = user?.role === 'ADMIN';
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-fade-in">
+      {/* Title */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Work Orders</h1>
-          <p className="text-sm text-gray-500 mt-1">Assign manufacturing or assembly jobs and track raw materials stock levels.</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Manufacturing & Assembly Jobs
+          </h1>
+          <p className="text-sm text-gray-500 mt-1.5 font-medium">
+            Stage work jobs, assign operators, and track material shortage constraints dynamically.
+          </p>
         </div>
-        {user?.role === 'ADMIN' && (
+        {isAdmin && (
           <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white font-semibold rounded-xl text-sm hover:bg-brand-700 shadow-md shadow-brand-600/10 transition-all"
+            onClick={() => {
+              setWorkOrderId(`WO-${Date.now().toString().slice(-6)}`);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold rounded-2xl text-sm shadow-lg shadow-brand-500/20 hover:shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0"
           >
-            <Plus className="w-4 h-4" />
-            Create Work Order
+            <Plus className="w-4 h-4 stroke-[3]" />
+            New Work Job
           </button>
         )}
       </div>
 
-      {/* Grid List */}
-      <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+      {/* Stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Active Work Orders</span>
+            <h3 className="text-3xl font-black text-gray-900 tracking-tight">{activeJobsCount}</h3>
+          </div>
+          <div className="p-4 bg-blue-50 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Material Shortages</span>
+            <h3 className="text-3xl font-black text-gray-900 tracking-tight">{shortageJobsCount}</h3>
+          </div>
+          <div className="p-4 bg-rose-50 rounded-2xl text-rose-600 group-hover:scale-110 transition-transform">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all flex items-center justify-between group">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Completed Jobs</span>
+            <h3 className="text-3xl font-black text-gray-900 tracking-tight">{completedJobsCount}</h3>
+          </div>
+          <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600 group-hover:scale-110 transition-transform">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* Grid listing */}
+      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                <th className="py-4 px-6">Work Order ID</th>
-                <th className="py-4 px-6">Location</th>
-                <th className="py-4 px-6">Item</th>
-                <th className="py-4 px-6 text-center">Required Qty</th>
-                <th className="py-4 px-6 text-center">Shortage</th>
-                <th className="py-4 px-6">Assigned User</th>
-                <th className="py-4 px-6">Status</th>
-                <th className="py-4 px-6 text-right">Actions</th>
+              <tr className="bg-gray-50/50 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                <th className="py-5 px-6">Job Reference</th>
+                <th className="py-5 px-6">Assigned Operator</th>
+                <th className="py-5 px-6">Material Needed</th>
+                <th className="py-5 px-6">Assigned Location</th>
+                <th className="py-5 px-6 text-center">Required Qty</th>
+                <th className="py-5 px-6 text-center">Shortage</th>
+                <th className="py-5 px-6">Status</th>
+                <th className="py-5 px-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-600">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400 font-semibold">
-                    Loading work orders...
+                  <td colSpan={8} className="py-16 text-center text-gray-400 font-bold tracking-wide">
+                    Loading production jobs...
                   </td>
                 </tr>
-              ) : workOrders.length === 0 ? (
+              ) : orders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-gray-400 font-semibold">
-                    No work orders found.
+                  <td colSpan={8} className="py-16 text-center text-gray-400 font-bold tracking-wide">
+                    No active production jobs assigned.
                   </td>
                 </tr>
               ) : (
-                workOrders.map((wo) => (
-                  <tr key={wo.id} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="py-4 px-6 font-bold text-gray-900">{wo.workOrderId}</td>
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-1 text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full text-xs font-semibold">
-                        <MapPin className="w-3 h-3 text-gray-500" />
-                        {wo.location?.name}
+                orders.map((ord) => (
+                  <tr key={ord.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-5 px-6 font-bold text-gray-900 tracking-tight">{ord.workOrderId}</td>
+                    <td className="py-5 px-6">
+                      <div className="font-bold text-gray-900">{ord.assignedUser?.username}</div>
+                      <div className="text-[10px] text-gray-400 font-semibold tracking-wider mt-0.5 uppercase">{ord.assignedUser?.role}</div>
+                    </td>
+                    <td className="py-5 px-6">
+                      <div className="font-bold text-gray-900">{ord.inventory?.item}</div>
+                      <div className="text-[10px] text-gray-400 font-semibold mt-0.5">Batch: {ord.inventory?.batch}</div>
+                    </td>
+                    <td className="py-5 px-6">
+                      <span className="inline-flex items-center gap-1.5 text-gray-700 bg-gray-100 px-3 py-1 rounded-xl text-xs font-semibold">
+                        <Warehouse className="w-3.5 h-3.5 text-gray-400" />
+                        {ord.location?.name}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-semibold">{wo.inventory?.item}</td>
-                    <td className="py-4 px-6 text-center font-bold">{wo.requiredQuantity}</td>
-                    <td className="py-4 px-6 text-center">
-                      {wo.shortageQuantity > 0 ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-100 px-2 py-0.5 rounded-full text-xs font-bold">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            {wo.shortageQuantity} Short
+                    <td className="py-5 px-6 text-center font-extrabold text-gray-900 text-sm">{ord.requiredQuantity}</td>
+                    <td className="py-5 px-6 text-center">
+                      {ord.shortageQuantity > 0 ? (
+                        <div className="flex flex-col items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-100 px-2.5 py-1 rounded-lg text-xs font-bold shadow-sm">
+                            <TrendingDown className="w-3.5 h-3.5" />
+                            {ord.shortageQuantity} units short
                           </span>
-                          {(user?.role === 'ADMIN' || user?.role === 'WAREHOUSE') && wo.status !== 'COMPLETED' && (
+                          {(user?.role === 'ADMIN' || user?.role === 'WAREHOUSE') && (
                             <button
-                              onClick={() =>
-                                navigate('/erp/transfers', {
-                                  state: {
-                                    destinationLocationId: wo.locationId,
-                                    inventoryItemName: wo.inventory?.item,
-                                    quantity: wo.shortageQuantity,
-                                    prefill: true,
-                                  },
-                                })
-                              }
-                              className="text-[10px] text-brand-600 hover:text-brand-700 font-bold inline-flex items-center gap-0.5 hover:underline"
+                              onClick={() => navigate(`/erp/transfers?dest=${ord.locationId}&item=${ord.inventory?.item}`)}
+                              className="inline-flex items-center gap-1 text-[10px] text-brand-600 hover:text-brand-700 font-bold hover:underline"
                             >
-                              <ArrowLeftRight className="w-2.5 h-2.5" />
-                              Stock Transfer
+                              Request Transfer
+                              <ArrowRight className="w-3 h-3" />
                             </button>
                           )}
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-100 px-2 py-0.5 rounded-full text-xs font-semibold">
-                          No Shortage
+                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-100 px-2.5 py-1 rounded-lg text-xs font-bold">
+                          All Stocks Clear
                         </span>
                       )}
                     </td>
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-1 font-medium text-gray-700">
-                        <User className="w-3.5 h-3.5 text-gray-400" />
-                        {wo.assignedUser?.name}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">{getStatusBadge(wo.status)}</td>
-                    <td className="py-4 px-6 text-right">
-                      {user?.role === 'ADMIN' && wo.status !== 'COMPLETED' && (
-                        <div className="flex items-center justify-end gap-1.5">
-                          {wo.status === 'ASSIGNED' && (
-                            <button
-                              onClick={() => handleUpdateStatus(wo.id, 'IN_PROGRESS')}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-amber-600 text-white rounded-lg hover:bg-amber-700 shadow-sm"
-                            >
-                              Start Job
-                              <ArrowRight className="w-3 h-3" />
-                            </button>
-                          )}
-                          {wo.status === 'IN_PROGRESS' && (
-                            <button
-                              onClick={() => handleUpdateStatus(wo.id, 'COMPLETED')}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-sm"
-                            >
-                              Complete
-                              <CheckCircle className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
+                    <td className="py-5 px-6">{getStatusBadge(ord.status)}</td>
+                    <td className="py-5 px-6 text-right">
+                      {ord.status === 'ASSIGNED' && (
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'IN_PROGRESS')}
+                          className="inline-flex items-center gap-1 px-3 py-2 bg-brand-50 text-brand-700 border border-brand-100 rounded-xl text-xs font-bold transition-all hover:bg-brand-100/60"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                          Start Job
+                        </button>
+                      )}
+                      {ord.status === 'IN_PROGRESS' && (
+                        <button
+                          onClick={() => handleUpdateStatus(ord.id, 'COMPLETED')}
+                          className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl text-xs font-bold transition-all hover:bg-emerald-100/60"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          Complete
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -261,35 +295,38 @@ export const WorkOrders: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Work Order Modal */}
+      {/* New Work Order Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-gray-100 shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/40 backdrop-blur-md animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full border border-gray-100 shadow-2xl overflow-hidden transform scale-100 transition-all">
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-900">Create Work Order</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-bold text-gray-900">Create Work Order</h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600 transition-all"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateWorkOrder} className="p-6 space-y-4">
+            <form onSubmit={handleCreateOrder} className="p-6 space-y-5">
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Work Order ID</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Work Order Code</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. WO-2026-0005"
                   value={workOrderId}
                   onChange={(e) => setWorkOrderId(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-gray-200 focus:border-brand-500 rounded-xl outline-none text-sm transition-all text-gray-700 font-medium"
+                  className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 focus:border-brand-500 focus:bg-white rounded-2xl outline-none text-sm transition-all text-gray-700 font-semibold"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Manufacturing Location</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Stage Location</label>
                 <select
                   required
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-gray-200 focus:border-brand-500 rounded-xl outline-none text-sm text-gray-600 font-semibold transition-all"
+                  className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 focus:border-brand-500 focus:bg-white rounded-2xl outline-none text-sm text-gray-600 font-semibold transition-all"
                 >
                   <option value="">Select Location</option>
                   {locations.map((loc) => (
@@ -300,25 +337,23 @@ export const WorkOrders: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Inventory Item/Material</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Select Material & Batch</label>
                 <select
                   required
                   value={inventoryId}
                   onChange={(e) => setInventoryId(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-gray-200 focus:border-brand-500 rounded-xl outline-none text-sm text-gray-600 font-semibold transition-all"
-                  disabled={!locationId}
+                  className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 focus:border-brand-500 focus:bg-white rounded-2xl outline-none text-sm text-gray-600 font-semibold transition-all"
                 >
-                  <option value="">Select Item</option>
-                  {filteredInventory.map((inv) => (
+                  <option value="">Select Inventory Row</option>
+                  {inventory.map((inv) => (
                     <option key={inv.id} value={inv.id}>
-                      {inv.item} ({inv.batch}) — Available: {inv.physicalQuantity - inv.reservedQuantity - inv.damagedQuantity}
+                      {inv.item} ({inv.batch}) at {inv.location?.name}
                     </option>
                   ))}
                 </select>
-                {!locationId && <p className="text-[10px] text-gray-400 mt-1 font-semibold">Please select a location first.</p>}
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Required Quantity</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Required Quantity</label>
                 <input
                   type="number"
                   required
@@ -326,21 +361,21 @@ export const WorkOrders: React.FC = () => {
                   placeholder="e.g. 50"
                   value={requiredQuantity}
                   onChange={(e) => setRequiredQuantity(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full px-3.5 py-2 border border-gray-200 focus:border-brand-500 rounded-xl outline-none text-sm transition-all text-gray-700 font-medium"
+                  className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 focus:border-brand-500 focus:bg-white rounded-2xl outline-none text-sm transition-all text-gray-700 font-semibold"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Assigned Operator/User</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Assign Operator</label>
                 <select
                   required
                   value={assignedUserId}
                   onChange={(e) => setAssignedUserId(e.target.value)}
-                  className="w-full px-3.5 py-2 border border-gray-200 focus:border-brand-500 rounded-xl outline-none text-sm text-gray-600 font-semibold transition-all"
+                  className="w-full px-4 py-3 bg-gray-50/50 border border-gray-200 focus:border-brand-500 focus:bg-white rounded-2xl outline-none text-sm text-gray-600 font-semibold transition-all"
                 >
-                  <option value="">Select User</option>
-                  {users.map((usr) => (
-                    <option key={usr.id} value={usr.id}>
-                      {usr.name} ({usr.role})
+                  <option value="">Select operator</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.username} ({u.role})
                     </option>
                   ))}
                 </select>
@@ -349,15 +384,15 @@ export const WorkOrders: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-200 text-gray-500 font-semibold rounded-xl text-sm hover:bg-gray-50"
+                  className="px-4 py-2.5 border border-gray-200 text-gray-500 hover:bg-gray-50 font-semibold rounded-xl text-sm transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-brand-600 text-white font-semibold rounded-xl text-sm hover:bg-brand-700 shadow-md"
+                  className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-md transition-colors"
                 >
-                  Create Work Order
+                  Stage Work
                 </button>
               </div>
             </form>
