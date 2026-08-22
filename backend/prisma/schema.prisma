@@ -49,6 +49,11 @@ model User {
   challansCreated Challan[]            @relation("ChallanCreatedBy")
   stockMovements  StockMovementLog[]
   followUpNotes   CustomerFollowUpNote[]
+
+  // New ERP Relations
+  locationId      String?
+  location        Location?            @relation(fields: [locationId], references: [id])
+  workOrders      WorkOrder[]
 }
 
 model Customer {
@@ -68,6 +73,9 @@ model Customer {
 
   followUpNotes CustomerFollowUpNote[]
   challans      Challan[]
+
+  // New ERP Relations
+  customerOrders CustomerOrder[]
 }
 
 model CustomerFollowUpNote {
@@ -132,4 +140,113 @@ model ChallanLineItem {
   priceAtSale  Float
   productName  String
   productSku   String
+}
+
+enum WorkOrderStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TransferStatus {
+  REQUESTED
+  DISPATCHED
+  PARTIALLY_RECEIVED
+  RECEIVED
+}
+
+enum CustomerOrderStatus {
+  RESERVED
+  COMPLETED
+  CANCELLED
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventories          Inventory[]
+  workOrders           WorkOrder[]
+  sourceTransfers      InternalTransfer[] @relation("SourceLocation")
+  destinationTransfers InternalTransfer[] @relation("DestinationLocation")
+  users                User[]
+}
+
+model Inventory {
+  id               String   @id @default(uuid())
+  item             String
+  category         String
+  locationId       String
+  location         Location @relation(fields: [locationId], references: [id])
+  batch            String
+  physicalQuantity Int      @default(0)
+  reservedQuantity Int      @default(0)
+  damagedQuantity  Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workOrders       WorkOrder[]
+  transfers        InternalTransfer[] @relation("TransferInventory")
+  customerOrders   CustomerOrder[]
+  transactions     InventoryTransaction[]
+
+  @@unique([item, locationId, batch])
+}
+
+model InventoryTransaction {
+  id              String    @id @default(uuid())
+  inventoryId     String
+  inventory       Inventory @relation(fields: [inventoryId], references: [id])
+  quantityChanged Int
+  type            String
+  reference       String    @unique
+  createdAt       DateTime  @default(now())
+}
+
+model WorkOrder {
+  id               String          @id @default(uuid())
+  workOrderId      String          @unique
+  locationId       String
+  location         Location        @relation(fields: [locationId], references: [id])
+  inventoryId      String
+  inventory        Inventory       @relation(fields: [inventoryId], references: [id])
+  requiredQuantity Int
+  shortageQuantity Int             @default(0)
+  assignedUserId   String
+  assignedUser     User            @relation(fields: [assignedUserId], references: [id])
+  status           WorkOrderStatus @default(ASSIGNED)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model InternalTransfer {
+  id                    String         @id @default(uuid())
+  transferId            String         @unique
+  sourceLocationId      String
+  sourceLocation        Location       @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  destinationLocationId String
+  destinationLocation   Location       @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
+  inventoryId           String
+  inventory             Inventory      @relation("TransferInventory", fields: [inventoryId], references: [id])
+  quantity              Int
+  dispatchedQuantity    Int?
+  receivedQuantity      Int            @default(0)
+  status                TransferStatus @default(REQUESTED)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+}
+
+model CustomerOrder {
+  id          String              @id @default(uuid())
+  orderNumber String              @unique
+  customerId  String
+  customer    Customer            @relation(fields: [customerId], references: [id])
+  inventoryId String
+  inventory   Inventory           @relation(fields: [inventoryId], references: [id])
+  quantity    Int
+  status      CustomerOrderStatus @default(RESERVED)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 }
