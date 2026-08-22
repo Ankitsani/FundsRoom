@@ -16,12 +16,12 @@ A complete, production-quality Mini ERP & CRM Operations Portal built for wholes
 
 Seeded test accounts representing all four standard user roles in the organization:
 
-| Role | Username / Email | Password | Allowed Access Views |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@fundsroom.com` | `admin123` | All pages (Dashboard, CRM, Products, Challans, Status controls) |
-| **Sales** | `sales@fundsroom.com` | `sales123` | Dashboard, CRM, Challans (Create & Confirm), Read-only products |
-| **Warehouse** | `warehouse@fundsroom.com` | `warehouse123` | Dashboard, Product catalog (Edit stock & view logs), Read-only CRM |
-| **Accounts** | `accounts@fundsroom.com` | `accounts123` | Dashboard, CRM, Read-only Challans (Financial details & status check) |
+| Role | Username / Email | Password | CRM / Challan Access | ERP Operations Access |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | `admin@fundsroom.com` | `admin123` | Full access (CRM, Products, Challans) | Create Work Orders, Manage Locations, Full Access |
+| **Sales** | `sales@fundsroom.com` | `sales123` | CRM, Challans (Create/Confirm) | Create Sales Orders & Reserve Stock |
+| **Warehouse** | `warehouse@fundsroom.com` | `warehouse123` | Read-only CRM, Manage stock levels | Manage Multi-Location Inventory & Internal stock transfers |
+| **Accounts** | `accounts@fundsroom.com` | `accounts123` | Read-only CRM, Read-only Challans | Read-only access to all stock and transfers |
 
 ---
 
@@ -118,6 +118,18 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your web browser.
+
+### Step 5: Running Tests
+
+To run the new automated Vitest test suite (including the customer order concurrency check):
+```bash
+npm run test
+```
+
+To run the core transaction check script:
+```bash
+npm run test:transaction
+```
 
 ---
 

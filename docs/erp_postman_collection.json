@@ -1,0 +1,357 @@
+{
+  "info": {
+    "name": "Fundsroom Mini Operations ERP API Collection",
+    "description": "API collection covering Multi-Location Inventory, Work Orders, Stock Transfers, and Customer Stock Reservations with role-based auth and concurrency controls.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "Get Locations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/locations",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "locations"]
+            }
+          }
+        },
+        {
+          "name": "Create Location (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"East Depot Warehouse\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/locations",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "locations"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Get Inventory Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/inventory?locationId=&search=",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "inventory"],
+              "query": [
+                { "key": "locationId", "value": "" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Adjust Stock (Admin/Warehouse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item\": \"Smart LED TV 55\\\"\",\n  \"category\": \"Electronics\",\n  \"locationId\": \"{{location_id}}\",\n  \"batch\": \"B-TV01\",\n  \"physicalQuantity\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/inventory",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "inventory"]
+            }
+          }
+        },
+        {
+          "name": "Log Damaged Stock (Admin/Warehouse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inventoryId\": \"{{inventory_id}}\",\n  \"quantityChanged\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/inventory/damaged",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "inventory", "damaged"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Work Orders",
+      "item": [
+        {
+          "name": "Get Work Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "work-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create Work Order (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workOrderId\": \"WO-2026-9999\",\n  \"locationId\": \"{{location_id}}\",\n  \"inventoryId\": \"{{inventory_id}}\",\n  \"requiredQuantity\": 50,\n  \"assignedUserId\": \"{{user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/work-orders",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "work-orders"]
+            }
+          }
+        },
+        {
+          "name": "Update Work Order Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/work-orders/{{work_order_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "work-orders", "{{work_order_id}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock Transfers",
+      "item": [
+        {
+          "name": "Get Transfers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "transfers"]
+            }
+          }
+        },
+        {
+          "name": "Request Transfer (Admin/Warehouse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transferId\": \"TR-2026-9999\",\n  \"sourceLocationId\": \"{{source_loc_id}}\",\n  \"destinationLocationId\": \"{{dest_loc_id}}\",\n  \"inventoryId\": \"{{inventory_id}}\",\n  \"quantity\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/transfers",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "transfers"]
+            }
+          }
+        },
+        {
+          "name": "Dispatch Transfer (Admin/Warehouse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/transfers/{{transfer_id}}/dispatch",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "transfers", "{{transfer_id}}", "dispatch"]
+            }
+          }
+        },
+        {
+          "name": "Receive Transfer (Admin/Warehouse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"receivedQty\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/transfers/{{transfer_id}}/receive",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "transfers", "{{transfer_id}}", "receive"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Orders",
+      "item": [
+        {
+          "name": "Get Sales Reservations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/orders",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Create Reservation (Admin/Sales)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderNumber\": \"ORD-2026-9999\",\n  \"customerId\": \"{{customer_id}}\",\n  \"inventoryId\": \"{{inventory_id}}\",\n  \"quantity\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/orders",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Reservation (Admin/Sales)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/orders/{{order_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "orders", "{{order_id}}", "cancel"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

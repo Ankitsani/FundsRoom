@@ -88,3 +88,97 @@ When a Challan is generated, the catalog `name`, `sku`, and current `unitPrice` 
   1. Increments product stocks by original line item quantities.
   2. Writes stock movement logs (Movement: `IN`, Reason: "Restocked from Cancelled Sales Challan #CH-YYYY-XXXX").
   3. Updates Challan status to `CANCELLED`.
+
+---
+
+## 5. Mini Operations ERP Architecture
+
+We introduced a second domain to the ERP, supporting multi-location inventory, work orders with automated shortage tracking, internal stock transfers (with partial receipt), and concurrency-safe customer order reservations.
+
+### ER Diagram (Mermaid)
+
+```mermaid
+classDiagram
+    direction TB
+    class Location {
+        id String
+        name String
+    }
+    class User {
+        id String
+        role Role
+        locationId String
+    }
+    class Inventory {
+        id String
+        item String
+        category String
+        locationId String
+        physicalQuantity Int
+        reservedQuantity Int
+        damagedQuantity Int
+    }
+    class WorkOrder {
+        id String
+        workOrderId String
+        locationId String
+        inventoryId String
+        requiredQuantity Int
+        shortageQuantity Int
+        assignedUserId String
+        status WorkOrderStatus
+    }
+    class InternalTransfer {
+        id String
+        transferId String
+        sourceLocationId String
+        destinationLocationId String
+        inventoryId String
+        quantity Int
+        receivedQuantity Int
+        status TransferStatus
+    }
+    class CustomerOrder {
+        id String
+        orderNumber String
+        customerId String
+        inventoryId String
+        quantity Int
+        status CustomerOrderStatus
+    }
+
+    Location "1" *-- "many" User : "assigns"
+    Location "1" *-- "many" Inventory : "houses"
+    Location "1" *-- "many" WorkOrder : "stages"
+    Location "1" *-- "many" InternalTransfer : "dispatches (Source)"
+    Location "1" *-- "many" InternalTransfer : "receives (Destination)"
+    User "1" *-- "many" WorkOrder : "assigned to"
+    Inventory "1" *-- "many" WorkOrder : "requires material"
+    Inventory "1" *-- "many" InternalTransfer : "transfers stock"
+    Inventory "1" *-- "many" CustomerOrder : "allocates stock"
+    Customer "1" *-- "many" CustomerOrder : "buys"
+```
+
+### Concurrency-Control Strategy (§7)
+
+Under high load, concurrent customer stock reservations could exceed available stock, leading to negative inventory or double-booking. To solve this correctly at the database level:
+- **Design Decision:** We chose the **Atomic Conditional Update** pattern using raw SQL (`$executeRaw`).
+- **Justification:** Prisma's standard `update` API fetches a record first and updates it in memory before writing back, creating a race condition. Prisma's `updateMany` doesn't support comparing multiple database columns dynamically (e.g. `physicalQuantity - reservedQuantity - damagedQuantity >= quantity`).
+- **Implementation:** We run a raw update query at the engine level:
+  ```sql
+  UPDATE "Inventory"
+  SET "reservedQuantity" = "reservedQuantity" + :qty
+  WHERE id = :id AND ("physicalQuantity" - "reservedQuantity" - "damagedQuantity") >= :qty
+  ```
+  PostgreSQL locks the row for this update and evaluates the condition. If the condition is met, it increments the reservation and returns `1` affected row. If not met, it returns `0` affected rows.
+- **Transactional Safety:** If the query returns `0`, we roll back the transaction and return a `409 Conflict` error to the user, guaranteeing that stock reservations never exceed actual available levels.
+
+### Defense-In-Depth Database Constraints
+
+To prevent negative stock, we wrote raw SQL constraints at the PostgreSQL engine level in `backend/src/setup-db.ts`:
+1. `chk_physical_qty`: `physicalQuantity >= 0`
+2. `chk_reserved_qty`: `reservedQuantity >= 0`
+3. `chk_damaged_qty`: `damagedQuantity >= 0`
+4. `chk_available_qty`: `physicalQuantity >= (reservedQuantity + damagedQuantity)`
+
+Any application bug or manual database edit attempting to breach these rules is rejected immediately by the PostgreSQL database engine.
