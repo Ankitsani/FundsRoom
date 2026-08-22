@@ -4,6 +4,7 @@ import authRoutes from './modules/auth/auth.routes';
 import customerRoutes from './modules/customers/customers.routes';
 import productRoutes from './modules/products/products.routes';
 import challanRoutes from './modules/challans/challans.routes';
+import erpRoutes from './modules/erp/erp.routes';
 import { errorHandler } from './middleware/error';
 
 const app = express();
@@ -16,6 +17,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/challans', challanRoutes);
+app.use('/api/erp', erpRoutes);
 
 // Fallback Not Found Route
 app.use((req, res, next) => {

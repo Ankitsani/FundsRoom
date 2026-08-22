@@ -1,4 +1,4 @@
-import { PrismaClient, Role, CustomerType, CustomerStatus, ChallanStatus, MovementType } from '@prisma/client';
+import { PrismaClient, Role, CustomerType, CustomerStatus, ChallanStatus, MovementType, WorkOrderStatus, TransferStatus, CustomerOrderStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -7,6 +7,12 @@ async function main() {
   console.log('🌱 Starting database seeding...');
 
   // 1. Clear database tables in correct order
+  await prisma.customerOrder.deleteMany();
+  await prisma.internalTransfer.deleteMany();
+  await prisma.workOrder.deleteMany();
+  await prisma.inventoryTransaction.deleteMany();
+  await prisma.inventory.deleteMany();
+  await prisma.location.deleteMany();
   await prisma.challanLineItem.deleteMany();
   await prisma.stockMovementLog.deleteMany();
   await prisma.challan.deleteMany();
@@ -15,13 +21,28 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.user.deleteMany();
 
-  console.log('🧹 Cleaned existing database entries.');
+  console.log('🧹 Cleaned existing database entries including ERP tables.');
 
   // 2. Hash default passwords
   const adminPassword = await bcrypt.hash('admin123', 10);
   const salesPassword = await bcrypt.hash('sales123', 10);
   const warehousePassword = await bcrypt.hash('warehouse123', 10);
   const accountsPassword = await bcrypt.hash('accounts123', 10);
+
+  // 2b. Create Locations
+  const mainWarehouse = await prisma.location.create({
+    data: { name: 'Main Warehouse' },
+  });
+
+  const northDepot = await prisma.location.create({
+    data: { name: 'North Depot' },
+  });
+
+  const onlineHub = await prisma.location.create({
+    data: { name: 'Online Hub' },
+  });
+
+  console.log('📍 Created Locations: Main Warehouse, North Depot, Online Hub.');
 
   // 3. Create Users
   const admin = await prisma.user.create({
@@ -48,6 +69,7 @@ async function main() {
       password: warehousePassword,
       name: 'Warehouse Manager',
       role: Role.WAREHOUSE,
+      locationId: mainWarehouse.id,
     },
   });
 
@@ -343,6 +365,145 @@ async function main() {
   });
 
   console.log('🧾 Created 3 challans: 1 DRAFT, 1 CONFIRMED (with associated stock reductions/logs), 1 CANCELLED.');
+
+  // 7. Create ERP Inventories
+  const inv1 = await prisma.inventory.create({
+    data: {
+      item: 'Smart LED TV 55"',
+      category: 'Electronics',
+      locationId: mainWarehouse.id,
+      batch: 'B-TV01',
+      physicalQuantity: 100,
+      reservedQuantity: 30,
+      damagedQuantity: 5,
+    },
+  });
+
+  const inv2 = await prisma.inventory.create({
+    data: {
+      item: 'Ergonomic Office Chair',
+      category: 'Furniture',
+      locationId: mainWarehouse.id,
+      batch: 'B-CHR01',
+      physicalQuantity: 50,
+      reservedQuantity: 10,
+      damagedQuantity: 0,
+    },
+  });
+
+  const inv3 = await prisma.inventory.create({
+    data: {
+      item: 'Smart LED TV 55"',
+      category: 'Electronics',
+      locationId: northDepot.id,
+      batch: 'B-TV01',
+      physicalQuantity: 60,
+      reservedQuantity: 0,
+      damagedQuantity: 0,
+    },
+  });
+
+  const inv4 = await prisma.inventory.create({
+    data: {
+      item: 'Wireless Keyboard & Mouse',
+      category: 'Electronics',
+      locationId: northDepot.id,
+      batch: 'B-KBD01',
+      physicalQuantity: 200,
+      reservedQuantity: 0,
+      damagedQuantity: 0,
+    },
+  });
+
+  console.log('📦 Created 4 ERP inventory items.');
+
+  // Create initial transaction references (for idempotency)
+  await prisma.inventoryTransaction.createMany({
+    data: [
+      {
+        inventoryId: inv1.id,
+        quantityChanged: 100,
+        type: 'ADD',
+        reference: 'INIT-INV1',
+      },
+      {
+        inventoryId: inv2.id,
+        quantityChanged: 50,
+        type: 'ADD',
+        reference: 'INIT-INV2',
+      },
+      {
+        inventoryId: inv3.id,
+        quantityChanged: 60,
+        type: 'ADD',
+        reference: 'INIT-INV3',
+      },
+      {
+        inventoryId: inv4.id,
+        quantityChanged: 200,
+        type: 'ADD',
+        reference: 'INIT-INV4',
+      },
+    ],
+  });
+
+  // 8. Create ERP Work Orders
+  // Work Order 1: Assigned, shortage = 40 (since mainWarehouse only has 65 available LED TVs, but required is 105)
+  await prisma.workOrder.create({
+    data: {
+      workOrderId: 'WO-2026-0001',
+      locationId: mainWarehouse.id,
+      inventoryId: inv1.id,
+      requiredQuantity: 105,
+      shortageQuantity: 40,
+      assignedUserId: warehouse.id,
+      status: WorkOrderStatus.ASSIGNED,
+    },
+  });
+
+  // Work Order 2: In Progress, shortage = 0
+  await prisma.workOrder.create({
+    data: {
+      workOrderId: 'WO-2026-0002',
+      locationId: mainWarehouse.id,
+      inventoryId: inv2.id,
+      requiredQuantity: 30,
+      shortageQuantity: 0,
+      assignedUserId: warehouse.id,
+      status: WorkOrderStatus.IN_PROGRESS,
+    },
+  });
+
+  console.log('🛠 Created 2 ERP Work Orders.');
+
+  // 9. Create ERP Stock Transfers
+  // Transfer 1: Requested from North Depot to Main Warehouse for 40 TVs
+  await prisma.internalTransfer.create({
+    data: {
+      transferId: 'TR-2026-0001',
+      sourceLocationId: northDepot.id,
+      destinationLocationId: mainWarehouse.id,
+      inventoryId: inv3.id, // the TV inventory at North Depot
+      quantity: 40,
+      status: TransferStatus.REQUESTED,
+    },
+  });
+
+  console.log('🚛 Created 1 ERP Internal Stock Transfer.');
+
+  // 10. Create ERP Customer Orders
+  // Customer Order 1: Reserved 15 TVs for Customer Aman Gupta
+  await prisma.customerOrder.create({
+    data: {
+      orderNumber: 'ORD-2026-0001',
+      customerId: customer1.id,
+      inventoryId: inv1.id,
+      quantity: 15,
+      status: CustomerOrderStatus.RESERVED,
+    },
+  });
+
+  console.log('🛒 Created 1 ERP Customer Order reservation.');
   console.log('✅ Database seeding completed successfully.');
 }
 
