@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
     "test:transaction": "ts-node src/test-transaction.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "demo": "ts-node src/run-demo.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
