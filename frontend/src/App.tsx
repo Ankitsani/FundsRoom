@@ -11,6 +11,10 @@ import { CustomerDetail } from './pages/CustomerDetail';
 import { Products } from './pages/Products';
 import { Challans } from './pages/Challans';
 import { ChallanDetail } from './pages/ChallanDetail';
+import { ErpInventory } from './pages/ErpInventory';
+import { WorkOrders } from './pages/WorkOrders';
+import { InternalTransfers } from './pages/InternalTransfers';
+import { CustomerOrders } from './pages/CustomerOrders';
 import { Role } from './context/AuthContext';
 
 export const App: React.FC = () => {
@@ -38,6 +42,12 @@ export const App: React.FC = () => {
                 {/* Sales Challans (All roles can view, admin/sales/accounts can modify status) */}
                 <Route path="/challans" element={<Challans />} />
                 <Route path="/challans/:id" element={<ChallanDetail />} />
+
+                {/* Mini Operations ERP Modules */}
+                <Route path="/erp/inventory" element={<ErpInventory />} />
+                <Route path="/erp/work-orders" element={<WorkOrders />} />
+                <Route path="/erp/transfers" element={<InternalTransfers />} />
+                <Route path="/erp/orders" element={<CustomerOrders />} />
               </Route>
             </Route>
 

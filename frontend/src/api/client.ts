@@ -122,4 +122,85 @@ export const api = {
       return res.data;
     },
   },
+  erp: {
+    locations: {
+      list: async () => {
+        const res = await request<any>('/erp/locations', { method: 'GET' });
+        return res.data;
+      },
+      create: async (body: { name: string }) => {
+        const res = await request<any>('/erp/locations', { method: 'POST', body });
+        return res.data;
+      },
+    },
+    users: {
+      list: async () => {
+        const res = await request<any>('/erp/users', { method: 'GET' });
+        return res.data;
+      },
+    },
+    inventory: {
+      list: async (params: { locationId?: string; search?: string } = {}) => {
+        const query = new URLSearchParams();
+        if (params.locationId) query.append('locationId', params.locationId);
+        if (params.search) query.append('search', params.search);
+        const res = await request<any>(`/erp/inventory?${query.toString()}`, { method: 'GET' });
+        return res.data;
+      },
+      adjust: async (body: { item: string; category: string; locationId: string; batch: string; physicalQuantity: number }) => {
+        const res = await request<any>('/erp/inventory', { method: 'POST', body });
+        return res.data;
+      },
+      reportDamaged: async (body: { inventoryId: string; quantityChanged: number }) => {
+        const res = await request<any>('/erp/inventory/damaged', { method: 'POST', body });
+        return res.data;
+      },
+    },
+    workOrders: {
+      list: async () => {
+        const res = await request<any>('/erp/work-orders', { method: 'GET' });
+        return res.data;
+      },
+      create: async (body: { workOrderId: string; locationId: string; inventoryId: string; requiredQuantity: number; assignedUserId: string }) => {
+        const res = await request<any>('/erp/work-orders', { method: 'POST', body });
+        return res.data;
+      },
+      updateStatus: async (id: string, status: string) => {
+        const res = await request<any>(`/erp/work-orders/${id}/status`, { method: 'PATCH', body: { status } });
+        return res.data;
+      },
+    },
+    transfers: {
+      list: async () => {
+        const res = await request<any>('/erp/transfers', { method: 'GET' });
+        return res.data;
+      },
+      create: async (body: { transferId: string; sourceLocationId: string; destinationLocationId: string; inventoryId: string; quantity: number }) => {
+        const res = await request<any>('/erp/transfers', { method: 'POST', body });
+        return res.data;
+      },
+      dispatch: async (id: string) => {
+        const res = await request<any>(`/erp/transfers/${id}/dispatch`, { method: 'POST' });
+        return res.data;
+      },
+      receive: async (id: string, body: { receivedQty: number }) => {
+        const res = await request<any>(`/erp/transfers/${id}/receive`, { method: 'POST', body });
+        return res.data;
+      },
+    },
+    orders: {
+      list: async () => {
+        const res = await request<any>('/erp/orders', { method: 'GET' });
+        return res.data;
+      },
+      create: async (body: { orderNumber: string; customerId: string; inventoryId: string; quantity: number }) => {
+        const res = await request<any>('/erp/orders', { method: 'POST', body });
+        return res.data;
+      },
+      cancel: async (id: string) => {
+        const res = await request<any>(`/erp/orders/${id}/cancel`, { method: 'POST' });
+        return res.data;
+      },
+    },
+  },
 };

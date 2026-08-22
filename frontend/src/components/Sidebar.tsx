@@ -8,7 +8,11 @@ import {
   Receipt,
   LogOut,
   X,
-  UserCheck
+  UserCheck,
+  Warehouse,
+  ClipboardList,
+  Truck,
+  ShoppingBag
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +45,30 @@ export const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       to: '/challans',
       label: 'Sales Challans',
       icon: Receipt,
+      roles: ['ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'],
+    },
+    {
+      to: '/erp/inventory',
+      label: 'Multi-Location Stock',
+      icon: Warehouse,
+      roles: ['ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'],
+    },
+    {
+      to: '/erp/work-orders',
+      label: 'Work Orders',
+      icon: ClipboardList,
+      roles: ['ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'],
+    },
+    {
+      to: '/erp/transfers',
+      label: 'Internal Transfers',
+      icon: Truck,
+      roles: ['ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'],
+    },
+    {
+      to: '/erp/orders',
+      label: 'Reservations',
+      icon: ShoppingBag,
       roles: ['ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'],
     },
   ];
