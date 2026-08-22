@@ -13,8 +13,8 @@ import {
 
 const router = Router();
 
-const mobileRegex = /^\+?[0-9]{10,14}$/;
-const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Zz][0-9A-Z]{1}$/;
+const mobileRegex = /^\+?[0-9\s\-()]{10,20}$/;
+const gstRegex = /^[0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[0-9a-zA-Z]{1}[Zz][0-9a-zA-Z]{1}$/;
 
 const customerSchema = z.object({
   body: z.object({
