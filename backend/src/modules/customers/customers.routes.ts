@@ -14,7 +14,7 @@ import {
 const router = Router();
 
 const mobileRegex = /^\+?[0-9\s\-()]{10,20}$/;
-const gstRegex = /^[0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[0-9a-zA-Z]{1}[Zz][0-9a-zA-Z]{1}$/;
+const gstRegex = /^([0-9]{2}[a-zA-Z]{5}[0-9]{4}[a-zA-Z]{1}[0-9a-zA-Z]{1}[Zz][0-9a-zA-Z]{1}|[0-9a-zA-Z]{3,15})$/;
 
 const customerSchema = z.object({
   body: z.object({
@@ -38,6 +38,8 @@ const customerSchema = z.object({
     followUpDate: z.string()
       .datetime({ precision: 3, offset: true })
       .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)) // Allow plain YYYY-MM-DD
+      .or(z.string().regex(/^\d{2}-\d{2}-\d{4}$/)) // Allow plain DD-MM-YYYY
+      .or(z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/)) // Allow plain DD/MM/YYYY
       .optional()
       .nullable()
       .or(z.literal(''))
