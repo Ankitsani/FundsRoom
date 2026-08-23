@@ -18,9 +18,9 @@ services:
     build: ./backend
     container_name: fundsroom-backend
     ports:
-      - "5000:5000"
+      - "5001:5001"
     environment:
-      - PORT=5000
+      - PORT=5001
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/fundsroom_erp?schema=public
       - JWT_SECRET=super-secret-jwt-key-replace-in-production
     depends_on:
@@ -39,5 +39,18 @@ services:
       - backend
     restart: unless-stopped
 
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: fundsroom-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fundsroom.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+

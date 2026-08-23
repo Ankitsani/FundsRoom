@@ -28,7 +28,23 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     return {} as T;
   }
 
-  const result = await response.json();
+  const contentType = response.headers.get('content-type');
+  let result: any;
+
+  if (contentType && contentType.includes('application/json')) {
+    try {
+      result = await response.json();
+    } catch (e: any) {
+      throw new Error(`Failed to parse response as JSON. Status: ${response.status}. Error: ${e.message}`);
+    }
+  } else {
+    // Response is not JSON (typically HTML 404 / 500 error pages from Nginx/Vercel)
+    const text = await response.text();
+    const snippet = text.substring(0, 150).replace(/[\r\n]+/g, ' ');
+    throw new Error(
+      `Received non-JSON response from server (Status: ${response.status}). This usually means the API endpoint was not found or the backend is offline. Response preview: "${snippet}..."`
+    );
+  }
 
   if (!response.ok) {
     const errorMsg = result?.error?.message || 'Something went wrong';

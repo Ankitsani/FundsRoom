@@ -12,12 +12,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// Routes - supports both '/api' prefixed calls and prefix-less proxy calls
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/customers', customerRoutes);
+app.use('/customers', customerRoutes);
+
 app.use('/api/products', productRoutes);
+app.use('/products', productRoutes);
+
 app.use('/api/challans', challanRoutes);
+app.use('/challans', challanRoutes);
+
 app.use('/api/erp', erpRoutes);
+app.use('/erp', erpRoutes);
 
 // Fallback Not Found Route
 app.use((req, res, next) => {
